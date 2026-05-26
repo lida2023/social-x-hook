@@ -1,0 +1,9 @@
+out/
+cache/
+cache_forge/
+lib/
+node_modules/
+.env
+.vscode/
+.idea/
+.DS_Store
