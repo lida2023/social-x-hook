@@ -17,6 +17,7 @@ SocialX Hook is deployed and smoke-tested on X Layer testnet:
 | Hook flags | `0x80` (`BEFORE_SWAP_FLAG`) |
 | Registered KOL | `@guiyan16` -> `0xE2B76789984CE017B11d076Bc06Db658476A09F1` |
 | Demo PoolId | `0xbbd624df752d0d9d3e3bd7c7b424b44f48d44bbe425f5f21901808a051e0e761` |
+| X post | `https://x.com/guiyan16/status/2059341489365545056?s=20` |
 
 The mainnet deployment path is ready, but is pending X Layer mainnet OKB for gas.
 
