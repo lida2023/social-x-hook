@@ -7,7 +7,7 @@
 - Team X account: `@guiyan16`
 - Telegram: `@guiyan16`
 - GitHub: `https://github.com/lida2023/social-x-hook`
-- X post link: `https://x.com/guiyan16/status/2059336605161460086?s=20`
+- X post link: `https://x.com/guiyan16/status/2059341489365545056?s=20`
 
 ```bash
 gh auth login
