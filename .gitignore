@@ -1,6 +1,8 @@
 out/
 cache/
 cache_forge/
+broadcast/
+deploy_output.*
 lib/
 node_modules/
 .env

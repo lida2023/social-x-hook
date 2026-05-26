@@ -1,12 +1,12 @@
 # 🐦 SocialX Hook — Tweet Schedule
 
-> 🤖 **These tweets are auto-posted by the autonomous agent.**
-> The agent posts one every 4 hours, reads engagement, and pushes scores on-chain.
+> **Manual posting schedule.**
+> X API write access is not required. Post these manually, then the keeper reads engagement and pushes scores on-chain.
 > 
 > 赛事要求：提交时 @XLayerOfficial @Uniswap @flapdotsh，赛事期间持续运营发推
 > 策略：每天 2-3 条，混搭「产品介绍 + 技术亮点 + 互动话题」
 > 
-> ⚡ 你不需要手动发 — Agent 自动按顺序发，发完循环。
+> Keeper 只负责读取互动和更新分数，不负责自动发推。
 
 ---
 
@@ -29,9 +29,9 @@ The louder you tweet, the cheaper your pool trades. 🐦
 ```
 DeFi pools are SILENT 🤫
 
-KOLs drive attention on X, but that value never reaches their on-chain pool. LPs see zero benefit from a creator's social activity.
+KOLs drive attention on X, but that signal rarely reaches on-chain liquidity. LPs still trade with static pool parameters.
 
-SocialX Hook fixes this: your tweets → lower fees → more volume → more LP revenue.
+SocialX Hook fixes this: your tweets → on-chain score → dynamic V4 fee → cheaper swaps when attention spikes.
 
 Retweet if this resonates 🔁
 @XLayerOfficial @Uniswap @flapdotsh
@@ -45,7 +45,7 @@ SocialX Hook uses @Uniswap V4's `beforeSwap` hook to override LP fees dynamicall
 
 Score = f(likes, retweets, replies) → pushed on-chain by a lightweight keeper → fee adjusts instantly.
 
-No oracle needed. No gas overhead for LPs. Just pure V4 magic ✨
+Read-only keeper, on-chain score, real V4 fee override. Simple and demoable. ✨
 
 @XLayerOfficial @flapdotsh
 ```
@@ -104,17 +104,18 @@ This is the killer feature of V4 — hooks make pools PROGRAMMABLE, not just par
 ```
 ✅ Submitted SocialX Hook to the @XLayerOfficial Build X Hackathon!
 
-Contract deployed on XLayer (Chain 196) 🏗️
+Contract deployed on XLayer testnet (Chain 1952) 🏗️
 Keeper running ⚡
 Dynamic fees live 🔥
 
 What we built:
 • beforeSwap fee override based on X engagement
-• KOL creator economy (30% fee share)
-• Fully on-chain social identity (X handle → pool)
+• read-only keeper that pushes X engagement scores on-chain
+• on-chain social identity (X handle → wallet)
 
-Check it out 👇
-[link to repo/demo]
+Hook: 0x28cA4FBd778F9aAe963ee5E7dF9c3666d1eB8080
+PoolId: 0xbbd624df752d0d9d3e3bd7c7b424b44f48d44bbe425f5f21901808a051e0e761
+Repo: https://github.com/lida2023/social-x-hook
 
 @Uniswap @flapdotsh
 ```

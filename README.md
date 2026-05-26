@@ -1,204 +1,177 @@
-# 🐦 SocialX Hook
+# SocialX Hook
 
-> **Your X influence drives your pool.**  
-> *The louder you tweet, the cheaper they swap.*
+X engagement drives Uniswap v4 swap fees on XLayer.
 
-Built for **OKX Build X Hackathon — Hook Track** on **XLayer**.
+Built for the OKX Build X Hackathon Hook Track.
 
-[![XLayer](https://img.shields.io/badge/XLayer-Chain%20196-green)](https://www.okx.com/xlayer)
-[![Uniswap V4](https://img.shields.io/badge/Uniswap-V4%20Hooks-pink)](https://docs.uniswap.org/contracts/v4/overview)
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.26-blue)](https://soliditylang.org)
+## Current Testnet Deployment
 
-Follow us: [@SocialXHook](https://x.com/SocialXHook) (your project's X account)
-> 🤖 **Fully autonomous**: the keeper agent auto-posts tweets AND reads engagement — zero manual work after setup.
+SocialX Hook is deployed and smoke-tested on X Layer testnet:
 
----
+| Item | Value |
+| --- | --- |
+| Network | X Layer testnet |
+| Chain ID | `1952` |
+| PoolManager | `0x72aFaF53dEA92A2174cb4972DE8Ad137Ce8A39A5` |
+| SocialXHook | `0x28cA4FBd778F9aAe963ee5E7dF9c3666d1eB8080` |
+| Hook flags | `0x80` (`BEFORE_SWAP_FLAG`) |
+| Registered KOL | `@guiyan16` -> `0xE2B76789984CE017B11d076Bc06Db658476A09F1` |
+| Demo PoolId | `0xbbd624df752d0d9d3e3bd7c7b424b44f48d44bbe425f5f21901808a051e0e761` |
 
-## 🎯 Problem
+The mainnet deployment path is ready, but is pending X Layer mainnet OKB for gas.
 
-DeFi pools are **silent**. KOLs and creators drive attention on X, but that attention doesn't translate to on-chain value. LPs in a KOL's pool get no benefit from the KOL's social activity.
+## What It Does
 
-## 💡 Solution
+SocialX Hook connects public X activity to a Uniswap v4 dynamic-fee pool:
 
-**SocialX Hook** connects X engagement directly to Uniswap V4 swap fees.
-
-```
-Autonomous Agent posts tweets on schedule 🐦
-        ↓
-   Engagement flows in (likes, RTs, replies)
-        ↓
-   Agent reads metrics → calculates "social score"
-        ↓
-   Agent pushes score on-chain → Hook lowers swap fees
-        ↓
-   More volume → more LP fees → more KOL revenue
-        ↓
-   Agent tweets about it. Loop 🔁
+```text
+manual tweet -> X engagement -> keeper reads metrics -> score on-chain -> beforeSwap returns lower fee
 ```
 
-| Social Score | Swap Fee | Effect |
-|:---:|:---:|---|
-| 🔥 80-100 | 0.01% | Ultra cheap — volume spikes |
-| 📈 50-80 | 0.30% | Moderate |
-| 😴 0-20 | 1.00% | Baseline |
+KOLs register an X handle on-chain. A read-only keeper watches those handles, computes a 0-100 social score, and updates the hook. During swaps, callers pass the target KOL address in `hookData`; the hook returns a Uniswap v4 LP fee override based on that score.
 
-**KOLs earn 30% of all swap fees** — the better their content, the more they earn.
+## Current Scope
 
----
+Implemented:
 
-## 🏗️ Architecture
+- Real Uniswap v4 `IHooks` contract
+- `beforeSwap` dynamic LP fee override
+- Hook address permission validation for `BEFORE_SWAP_FLAG`
+- On-chain KOL handle registry
+- Keeper allowlist for score updates
+- Batch score updates
+- Read-only X metrics keeper
+- Foundry tests for registry behavior, hook behavior, and dynamic-fee pool initialization
 
-```
-┌─────────────────────────────────────────────┐
-│                  X (Twitter)                 │
-│  likes · retweets · replies · impressions   │
-└──────────────────┬──────────────────────────┘
-                   │  X API v2
-                   ▼
-┌─────────────────────────────────────────────┐
-│           Keeper (Node.js)                   │
-│  fetchLatestTweet() → calculateScore()       │
-│  → batchUpdateScores()                       │
-└──────────────────┬──────────────────────────┘
-                   │  on-chain tx
-                   ▼
-┌─────────────────────────────────────────────┐
-│         SocialXHook.sol                      │
-│                                              │
-│  ┌─────────────┐  ┌──────────────────────┐  │
-│  │ KOL Registry │  │  Dynamic Fee Engine  │  │
-│  │ @handle→addr │  │  score→fee (linear)  │  │
-│  └─────────────┘  └──────────────────────┘  │
-│                                              │
-│  ┌──────────────────────────────────────┐   │
-│  │  beforeSwap  → override fee          │   │
-│  │  afterSwap   → accumulate KOL share  │   │
-│  └──────────────────────────────────────┘   │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│          Uniswap V4 Pool on XLayer           │
-│         (PoolManager + SocialXHook)          │
-└─────────────────────────────────────────────┘
+Not implemented in this pass:
+
+- Automatic X posting
+- Production KOL fee sharing / custom accounting
+- Frontend dashboard
+
+KOL revenue sharing remains a roadmap item. The hackathon core is the true v4 Hook path.
+
+## Fee Curve
+
+Uniswap v4 LP fees are measured in hundredths of a bip:
+
+| Social score | LP fee |
+| ---: | ---: |
+| 0 | 1.00% |
+| 50 | 0.505% |
+| 100 | 0.01% |
+
+Formula:
+
+```text
+fee = MAX_FEE - score * (MAX_FEE - MIN_FEE) / 100
 ```
 
----
+## Architecture
 
-## 📁 Project Structure
-
+```text
+X public metrics
+       |
+       v
+keeper/index.js
+  - reads latest tweets
+  - scores likes / retweets / replies / quotes
+  - calls batchUpdateScores()
+       |
+       v
+SocialXHook.sol
+  - KOL registry
+  - keeper score updates
+  - beforeSwap dynamic fee override
+       |
+       v
+Uniswap v4 PoolManager dynamic-fee pool
 ```
+
+The pool must be created with `LPFeeLibrary.DYNAMIC_FEE_FLAG`. The hook must be deployed to an address whose low bits match `BEFORE_SWAP_FLAG`; `script/Deploy.s.sol` mines a CREATE2 salt for that.
+
+## Project Structure
+
+```text
 social-x-hook/
-├── src/
-│   └── SocialXHook.sol              # Core hook contract
-├── test/
-│   └── SocialXHook.t.sol            # Unit + integration tests
-├── script/
-│   └── DeploySocialXHook.s.sol      # Foundry deploy script
-├── keeper/
-│   └── index.js                     # X → chain social score keeper
-├── foundry.toml                     # Foundry config (XLayer RPC)
-├── remappings.txt                   # Solidity import aliases
-├── .env.example                     # Environment template
-└── README.md                        # This file
+├── src/SocialXHook.sol
+├── test/SocialXHook.t.sol
+├── script/Deploy.s.sol
+├── keeper/index.js
+├── setup.sh
+├── TWEETS.md
+├── SUMMARY.md
+└── docs/superpowers/
 ```
 
----
+## Setup
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- X/Twitter account
-- [X API Free tier app](https://developer.twitter.com) (Read + Write permissions)
-- OKB for gas on XLayer
-
-### 1. Get X API Credentials (5 min)
-
-Go to [developer.twitter.com](https://developer.twitter.com) → create a **Free** tier project → generate:
-
-- **API Key & Secret** (OAuth 1.0a)
-- **Access Token & Secret** (Read + Write)
-- **Bearer Token**
-
-### 2. Configure & Deploy
+Copy the environment template:
 
 ```bash
-cd social-x-hook
 cp .env.example .env
-# Edit .env → fill in your credentials
+```
+
+Required values:
+
+```text
+PRIVATE_KEY=...
+POOL_MANAGER=...
+TRACKED_KOLS=@your_handle
+```
+
+Optional but needed for real X metrics:
+
+```text
+X_BEARER_TOKEN=...
+```
+
+Use `DRY_RUN=true` to simulate keeper updates without sending transactions.
+
+## Test
+
+```bash
+forge test -vvv
+node --check keeper/index.js
+```
+
+## Deploy
+
+`POOL_MANAGER` must point to the Uniswap v4 PoolManager on the target XLayer network.
+
+```bash
 ./setup.sh
 ```
 
-### 3. Launch the Autonomous Agent
+The deploy script:
+
+1. Deploys a small CREATE2 helper.
+2. Mines a salt whose predicted hook address has `BEFORE_SWAP_FLAG`.
+3. Deploys `SocialXHook(poolManager, deployer)`.
+4. Writes `HOOK_ADDRESS` back to `.env`.
+
+## Run Keeper
+
+Register the same handle on-chain first, then start:
 
 ```bash
-cd keeper && npm start
+cd keeper
+npm start
 ```
 
-**That's it.** The agent will:
-- 🐦 Auto-post tweets on schedule (8 queued, loops)
-- 📊 Read engagement (likes/RTs/replies)
-- 📈 Calculate social scores
-- ⛓️ Push scores on-chain → fees update in real-time
+For simulation:
 
-No manual tweeting. No manual anything. Just let it run.
+```bash
+DRY_RUN=true npm start
+```
 
-> 💡 Test first: `DRY_RUN=true npm start` — simulates everything without real txs/posts.
+## Posting
 
----
+Tweets are manual. Use `TWEETS.md` as the schedule and tag the required hackathon accounts. The keeper only reads public engagement after tweets are posted.
 
-## 🔑 Key Design Decisions
+## Roadmap
 
-| Decision | Why |
-|----------|-----|
-| **Linear fee curve** | Simple, predictable, no cliff effects. Score 50 = exactly halfway between min/max fee |
-| **Keeper model (not oracle)** | Hackathon-scope: a single JS script is practical. Prod-ready: upgrade to Chainlink Functions or a decentralized keeper network |
-| **30% KOL fee share** | High enough to incentivize content creation, low enough that LPs still profit |
-| **`beforeSwap` dynamic fee** | True Uniswap V4 dynamic fee — fee changes take effect immediately, no pool migration |
-| **Handle on-chain** | Immutable proof of X identity. Enables reverse lookup for third-party UIs |
-| **Batch score updates** | Gas-efficient for keeper — update all KOLs in one tx |
-
----
-
-## 🧪 Future Roadmap
-
-- [ ] **Chainlink Automation** — Decentralized keeper via Chainlink upkeep
-- [ ] **Multi-platform** — Support Farcaster, Lens, TikTok metrics
-- [ ] **DAO-governed params** — KOL fee share + weightings voted by token holders
-- [ ] **Leaderboard UI** — Real-time dashboard of top KOL pools by volume
-- [ ] **flapdotsh integration** — Native social oracle for decentralized score feeds
-
----
-
-## 🌐 XLayer Network Info
-
-| Parameter | Value |
-|-----------|-------|
-| Chain ID | 196 |
-| RPC | `https://rpc.xlayer.tech` |
-| Explorer | https://www.oklink.com/x-layer |
-| Currency | OKB |
-| Tech Stack | Polygon CDK (zkEVM) |
-
----
-
-## 📣 Hackathon Submission Checklist
-
-- [x] Uniswap V4 Hook contract deployed on XLayer
-- [x] Dynamic fee overridden in `beforeSwap`
-- [x] Social signal → on-chain via keeper
-- [x] X handle stored on-chain
-- [x] KOL creator economy (fee share)
-- [x] Project X account: [@SocialXHook](https://x.com/SocialXHook)
-- [x] Tweets tagging @XLayerOfficial @Uniswap @flapdotsh
-- [x] Google Form submitted before May 28 23:59 UTC
-
----
-
-## 👤 Team
-
-Built with ❤️ + AI for **OKX Build X Hackathon — Hook Track**.
-
-*The best time to provide liquidity was yesterday. The best time to tweet about it is now.*
+- KOL fee-share custom accounting
+- Dashboard / leaderboard
+- Multi-platform scoring
+- Decentralized keeper or oracle path
